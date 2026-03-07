@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DevDoctor — Fix your setup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Inter:wght@300;400;450&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <main class="container">
+
+        <header>
+            <div class="logo">DevDoctor</div>
+            <nav class="nav-pills">
+                <span class="pill active">Diagnose</span>
+                <span class="pill">How it works</span>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <p class="hero-label">Setup & environment repair</p>
+            <h1>Your project broke.<br />Let's figure out why.</h1>
+            <p class="hero-sub">Drop a screenshot or describe what happened. No technical knowledge required.</p>
+        </section>
+
+        <!-- Input Card -->
+        <div class="input-card" id="inputCard">
+
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-inner">
+                    <div class="drop-icon-wrap">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <circle cx="8.5" cy="8.5" r="1.5" />
+                            <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                    </div>
+                    <p class="drop-title">Drop a screenshot here</p>
+                    <p class="drop-sub">We'll read the screen and identify the problem</p>
+                    <label class="upload-btn" for="fileInput">Select file</label>
+                    <input type="file" id="fileInput" accept="image/*" hidden />
+                </div>
+            </div>
+
+            <div class="divider"><span>or describe the problem</span></div>
+
+            <textarea id="textInput"
+                placeholder="Example: I tried to run my project and a black window appeared and closed instantly. Or paste your error message here."
+                rows="4"></textarea>
+
+            <button class="submit-btn" id="submitBtn">
+                Run diagnosis
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            </button>
+
+            <p class="privacy-note">Screenshots are processed once and never stored.</p>
+        </div>
+
+        <!-- Crop Modal -->
+        <div class="modal" id="cropModal" style="display:none;">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h3>Crop before sending</h3>
+                    <p>Remove anything personal from the screenshot</p>
+                </div>
+                <div class="crop-container">
+                    <img id="cropImage" src="" alt="crop preview" />
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" id="cancelCrop">Cancel</button>
+                    <button class="btn-solid" id="confirmCrop">Confirm crop</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loadingState" style="display:none;">
+            <div class="loading-bar">
+                <div class="loading-fill"></div>
+            </div>
+            <p>Analyzing your problem...</p>
+        </div>
+
+        <!-- Output -->
+        <div class="output-zone" id="outputZone" style="display:none;">
+
+            <div class="output-header">
+                <span class="status-dot"></span>
+                <span>Diagnosis complete</span>
+            </div>
+
+            <div class="output-card">
+                <div class="card-label">What went wrong</div>
+                <div class="card-body" id="whatText"></div>
+            </div>
+
+            <div class="output-card">
+                <div class="card-label">How to open your terminal</div>
+                <div class="card-body" id="whereText"></div>
+            </div>
+
+            <div class="output-card card-fix">
+                <div class="card-label">The fix</div>
+                <div class="card-body" id="fixText"></div>
+                <button class="copy-btn" id="copyBtn">Copy command</button>
+                <p class="expected-result" id="expectedResult"></p>
+            </div>
+
+            <button class="reset-btn" id="resetBtn">Start over</button>
+        </div>
+
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
