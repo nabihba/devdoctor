@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
         const systemInstruction = `You are an empathetic technical support agent helping a complete beginner. ALWAYS respond in valid JSON format. 
         If given a specific error or screenshot, respond with: { "what": "plain English explanation", "where": "numbered steps to open terminal based on detected OS", "fix": "the exact command", "expected": "what they will see when it works" }. 
