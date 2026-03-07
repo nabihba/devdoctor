@@ -99,6 +99,8 @@ confirmCrop.addEventListener('click', () => {
     croppedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
     dropZone.innerHTML = dropZoneAttached;
     cropModal.style.display = 'none';
+    if (cropper) cropper.destroy();
+    cropper = null;
 });
 
 // --- 3. Submit ---
@@ -175,10 +177,10 @@ function populateOutput(data) {
             });
         }
     } else {
-        whatText.innerText = data.what;
-        whereText.innerText = data.where;
-        fixText.innerText = data.fix;
-        expectedResult.innerText = data.expected;
+        whatText.innerText = data.what || 'Could not determine the issue.';
+        whereText.innerText = data.where || 'Open your terminal or command prompt.';
+        fixText.innerText = data.fix || 'No fix command available.';
+        expectedResult.innerText = data.expected || '';
         copyBtn.style.display = 'inline-block';
         const followUp = document.getElementById('followUpBox');
         if (followUp) followUp.remove();

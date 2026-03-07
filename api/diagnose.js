@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
 
     // 3. Block the Spammers
-    const ip = req.headers['x-forwarded-for'] || '127.0.0.1';
+    const ip = (req.headers['x-forwarded-for'] || '127.0.0.1').split(',')[0].trim();
 
     try {
         const { success } = await ratelimit.limit(ip);
@@ -55,10 +55,10 @@ export default async function handler(req, res) {
     let { text, imageBase64 } = req.body;
 
     // 4. Validate types and block massive payloads (Troll protection)
-    if (text !== undefined && typeof text !== 'string') {
+    if (text !== undefined && text !== null && typeof text !== 'string') {
         return res.status(400).json({ error: 'Invalid text format.' });
     }
-    if (imageBase64 !== undefined && typeof imageBase64 !== 'string') {
+    if (imageBase64 !== undefined && imageBase64 !== null && typeof imageBase64 !== 'string') {
         return res.status(400).json({ error: 'Invalid image format.' });
     }
 
@@ -72,6 +72,11 @@ export default async function handler(req, res) {
 
     if (text) {
         text = text.replace(/<[^>]*>?/gm, '').trim();
+    }
+
+    // If both are empty after sanitization, reject early
+    if (!text && !imageBase64) {
+        return res.status(400).json({ error: 'Please provide a description or a screenshot.' });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -124,13 +129,14 @@ export default async function handler(req, res) {
         const resultText = data.candidates[0].content.parts[0].text;
 
         // Strip markdown code fences if Gemini incorrectly includes them
-        const cleanText = resultText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+        const cleanText = resultText.replace(/^[\s\n]*```(?:json)?[\s\n]*/i, '').replace(/[\s\n]*```[\s\n]*$/i, '').trim();
 
         let resultObj;
         try {
             resultObj = JSON.parse(cleanText);
         } catch (e) {
-            console.error("Failed to parse Gemini response:", cleanText);
+            console.error("Failed to parse Gemini response. Raw text:", resultText);
+            console.error("After cleaning:", cleanText);
             throw new Error("AI returned an invalid response format.");
         }
 
