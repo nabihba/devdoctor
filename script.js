@@ -208,3 +208,11 @@ resetBtn.addEventListener('click', () => {
     loadingState.style.display = 'none';
     inputCard.style.display = 'block';
 });
+// How it works modal
+document.getElementById('howItWorks').addEventListener('click', () => {
+    document.getElementById('howModal').style.display = 'flex';
+});
+
+document.getElementById('closeHowModal').addEventListener('click', () => {
+    document.getElementById('howModal').style.display = 'none';
+});

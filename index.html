@@ -21,7 +21,7 @@
             <div class="logo">DevDoctor</div>
             <nav class="nav-pills">
                 <span class="pill active">Diagnose</span>
-                <span class="pill">How it works</span>
+                <span class="pill" id="howItWorks">How it works</span>
             </nav>
         </header>
 
@@ -118,6 +118,49 @@
             </div>
 
             <button class="reset-btn" id="resetBtn">Start over</button>
+        </div>
+        <div class="modal" id="howModal" style="display:none;">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h3>How DevDoctor works</h3>
+                    <p>Three steps to fix any setup problem</p>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px;">
+                    <div style="display:flex;gap:16px;align-items:flex-start;">
+                        <div
+                            style="min-width:32px;height:32px;background:#f4f3f0;border:1px solid #e5e3de;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:600;font-size:0.85rem;">
+                            1</div>
+                        <div>
+                            <p style="font-weight:500;font-size:0.9rem;margin-bottom:3px;">Show us the problem</p>
+                            <p style="font-size:0.82rem;color:#7c7b78;line-height:1.5;">Drop a screenshot of your screen
+                                when it broke, or just describe what happened in plain English.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:16px;align-items:flex-start;">
+                        <div
+                            style="min-width:32px;height:32px;background:#f4f3f0;border:1px solid #e5e3de;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:600;font-size:0.85rem;">
+                            2</div>
+                        <div>
+                            <p style="font-weight:500;font-size:0.9rem;margin-bottom:3px;">We diagnose it</p>
+                            <p style="font-size:0.82rem;color:#7c7b78;line-height:1.5;">Our AI reads your screenshot,
+                                detects your operating system, and figures out exactly what went wrong.</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:16px;align-items:flex-start;">
+                        <div
+                            style="min-width:32px;height:32px;background:#f4f3f0;border:1px solid #e5e3de;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:600;font-size:0.85rem;">
+                            3</div>
+                        <div>
+                            <p style="font-weight:500;font-size:0.9rem;margin-bottom:3px;">Copy the fix and run it</p>
+                            <p style="font-size:0.82rem;color:#7c7b78;line-height:1.5;">You get one command to copy and
+                                paste into your terminal. We tell you exactly what to expect when it works.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-solid" id="closeHowModal">Got it</button>
+                </div>
+            </div>
         </div>
 
     </main>
