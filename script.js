@@ -132,20 +132,57 @@ function populateOutput(data) {
     loadingState.style.display = 'none';
     outputZone.style.display = 'block';
 
-    // Handle the Vague Input Triage routing
     if (data.question) {
-        whatText.innerText = "Let's narrow this down!";
-        whereText.innerText = "I need a tiny bit more info before I give you a command.";
-        fixText.innerText = data.question; // Repurposing the fix block for the question
-        expectedResult.innerText = "Type your answer in the box below and hit reset!";
-        copyBtn.style.display = 'none'; // No command to copy
+        whatText.innerText = "Let's narrow this down.";
+        whereText.innerText = "Answer the question below and I'll give you the exact fix.";
+        fixText.innerText = data.question;
+        expectedResult.innerText = '';
+        copyBtn.style.display = 'none';
+
+        // Show follow-up input if not already there
+        if (!document.getElementById('followUpBox')) {
+            const followUp = document.createElement('div');
+            followUp.id = 'followUpBox';
+            followUp.innerHTML = `
+                <textarea id="followUpInput" placeholder="Type your answer here..." rows="2" style="width:100%;margin-top:12px;background:#f4f3f0;border:1.5px solid #e5e3de;border-radius:10px;padding:12px;font-family:'Inter',sans-serif;font-size:0.875rem;resize:none;"></textarea>
+                <button id="followUpSubmit" style="margin-top:10px;width:100%;padding:12px;background:#1a1a1a;color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:500;cursor:pointer;">Submit answer</button>
+            `;
+            document.getElementById('cardFix').appendChild(followUp);
+
+            document.getElementById('followUpSubmit').addEventListener('click', async () => {
+                const followUpText = document.getElementById('followUpInput').value.trim();
+                if (!followUpText) return;
+
+                // Combine original input with follow up answer
+                const combined = (textInput.value.trim() ? textInput.value.trim() + ' ' : '') + followUpText;
+
+                // Remove follow up box
+                followUp.remove();
+
+                outputZone.style.display = 'none';
+                loadingState.style.display = 'block';
+                copyBtn.style.display = 'inline-block';
+
+                try {
+                    await callBackendAPI(combined, croppedBase64);
+                } catch (error) {
+                    alert("An error occurred: " + error.message);
+                    loadingState.style.display = 'none';
+                    outputZone.style.display = 'block';
+                }
+            });
+        }
+
     } else {
-        // Handle the Standard Fix Output
         whatText.innerText = data.what;
         whereText.innerText = data.where;
         fixText.innerText = data.fix;
         expectedResult.innerText = data.expected;
         copyBtn.style.display = 'inline-block';
+
+        // Remove follow up box if it exists
+        const followUp = document.getElementById('followUpBox');
+        if (followUp) followUp.remove();
     }
 }
 
