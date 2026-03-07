@@ -96,7 +96,7 @@ cancelCrop.addEventListener('click', () => {
 
 confirmCrop.addEventListener('click', () => {
     const canvas = cropper.getCroppedCanvas();
-    croppedBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+    croppedBase64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
     dropZone.innerHTML = dropZoneAttached;
     cropModal.style.display = 'none';
 });
@@ -108,6 +108,7 @@ submitBtn.addEventListener('click', async () => {
         alert("Please either drop a screenshot or describe your problem.");
         return;
     }
+    submitBtn.disabled = true;
     inputCard.style.display = 'none';
     loadingState.style.display = 'block';
     outputZone.style.display = 'none';
@@ -117,6 +118,8 @@ submitBtn.addEventListener('click', async () => {
         alert("An error occurred: " + error.message);
         loadingState.style.display = 'none';
         inputCard.style.display = 'block';
+    } finally {
+        submitBtn.disabled = false;
     }
 });
 
@@ -153,8 +156,10 @@ function populateOutput(data) {
             document.getElementById('cardFix').appendChild(followUp);
 
             document.getElementById('followUpSubmit').addEventListener('click', async () => {
+                const followUpBtn = document.getElementById('followUpSubmit');
                 const followUpText = document.getElementById('followUpInput').value.trim();
                 if (!followUpText) return;
+                followUpBtn.disabled = true;
                 const combined = (textInput.value.trim() ? textInput.value.trim() + ' ' : '') + followUpText;
                 followUp.remove();
                 outputZone.style.display = 'none';
