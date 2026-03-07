@@ -1,53 +1,49 @@
-// In-memory rate limit store (resets on cold start, good enough for V1)
-const requests = new Map();
+import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 
-function isRateLimited(ip) {
-    const now = Date.now();
-    const windowMs = 60 * 1000; // 1 minute window
-    const max = 5; // 5 requests per minute per IP
+// 1. Connect directly to your Upstash database
+const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
-    if (!requests.has(ip)) requests.set(ip, []);
-
-    const timestamps = requests.get(ip).filter(t => now - t < windowMs);
-    timestamps.push(now);
-    requests.set(ip, timestamps);
-
-    return timestamps.length > max;
-}
+// 2. Configure the Rate Limiter: 5 requests per 60 seconds per IP
+const ratelimit = new Ratelimit({
+    redis: redis,
+    limiter: Ratelimit.slidingWindow(5, '60 s'),
+});
 
 export default async function handler(req, res) {
-    // Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // Rate limiting
-    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
-    if (isRateLimited(ip)) {
-        return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+    // 3. Block the Spammers
+    const ip = req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    try {
+        const { success } = await ratelimit.limit(ip);
+        if (!success) {
+            return res.status(429).json({ error: 'Woah, slow down! You have hit the limit. Please wait a minute and try again.' });
+        }
+    } catch (error) {
+        console.error("Redis Error:", error);
     }
 
-    const { text, imageBase64 } = req.body;
+    let { text, imageBase64 } = req.body;
 
-    // Input validation
-    if (!text && !imageBase64) {
-        return res.status(400).json({ error: 'Please provide a description or screenshot.' });
+    // 4. Block massive payloads (Troll protection)
+    if (text && text.length > 1000) {
+        return res.status(400).json({ error: 'Text description is too long. Keep it under 1000 characters.' });
     }
 
-    if (text && typeof text !== 'string') {
-        return res.status(400).json({ error: 'Invalid input.' });
+    if (imageBase64 && imageBase64.length > 5500000) {
+        return res.status(400).json({ error: 'Image file is too large. Please crop a smaller section.' });
     }
 
-    if (text && text.length > 2000) {
-        return res.status(400).json({ error: 'Text input is too long. Please keep it under 2000 characters.' });
+    if (text) {
+        text = text.replace(/<[^>]*>?/gm, '').trim();
     }
-
-    if (imageBase64 && imageBase64.length > 5 * 1024 * 1024) {
-        return res.status(400).json({ error: 'Image is too large. Please use a smaller screenshot.' });
-    }
-
-    // Sanitize text — strip any HTML or script tags
-    const sanitizedText = text ? text.replace(/<[^>]*>/g, '').trim() : null;
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -63,7 +59,7 @@ export default async function handler(req, res) {
         If the input is vague, respond with: { "question": "Your simple multiple choice question here without technical jargon" }.`;
 
         const parts = [];
-        if (sanitizedText) parts.push({ text: sanitizedText });
+        if (text) parts.push({ text: text });
         if (imageBase64) {
             parts.push({
                 inline_data: { mime_type: "image/jpeg", data: imageBase64 }
@@ -95,6 +91,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Backend Error:", error);
-        return res.status(500).json({ error: 'Failed to process diagnosis. Please try again.' });
+        return res.status(500).json({ error: 'Failed to process diagnosis.' });
     }
 }
