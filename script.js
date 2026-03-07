@@ -17,38 +17,61 @@ const copyBtn = document.getElementById('copyBtn');
 const expectedResult = document.getElementById('expectedResult');
 const resetBtn = document.getElementById('resetBtn');
 
-// --- State Variables ---
+// --- State ---
 let cropper = null;
 let croppedBase64 = null;
-// Notice: No apiKey variable here! It's safely in the backend now.
 
-// --- 1. Drag and Drop & File Picker Logic ---
+// --- Drop Zone HTML Templates ---
+const dropZoneDefault = `
+    <div class="drop-inner">
+        <div class="drop-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+            </svg>
+        </div>
+        <p class="drop-title">Drop a screenshot here</p>
+        <p class="drop-sub">We'll read the screen and identify the problem</p>
+        <label class="upload-btn" for="fileInput">Select file</label>
+    </div>
+`;
+
+const dropZoneAttached = `
+    <div class="drop-inner">
+        <div class="drop-icon-wrap" style="background:#eff6ff;border-color:#2563eb;color:#2563eb">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </div>
+        <p class="drop-title" style="color:#2563eb">Screenshot attached</p>
+        <p class="drop-sub">Ready to diagnose</p>
+    </div>
+`;
+
+// --- 1. Drag and Drop ---
 dropZone.addEventListener('click', () => fileInput.click());
 
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
-    dropZone.style.borderColor = '#007BFF'; // Highlight on hover
+    dropZone.classList.add('dragover');
 });
 
 dropZone.addEventListener('dragleave', () => {
-    dropZone.style.borderColor = '#ccc'; // Reset
+    dropZone.classList.remove('dragover');
 });
 
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
-    dropZone.style.borderColor = '#ccc';
-    if (e.dataTransfer.files.length > 0) {
-        handleImageUpload(e.dataTransfer.files[0]);
-    }
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) handleImageUpload(e.dataTransfer.files[0]);
 });
 
 fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleImageUpload(e.target.files[0]);
-    }
+    if (e.target.files.length > 0) handleImageUpload(e.target.files[0]);
 });
 
-// --- 2. Cropper.js Modal Logic ---
+// --- 2. Cropper ---
 function handleImageUpload(file) {
     if (!file.type.startsWith('image/')) {
         alert("Please upload an image file.");
@@ -57,77 +80,58 @@ function handleImageUpload(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         cropImage.src = e.target.result;
-        cropModal.style.display = 'block'; // Show modal
-
-        if (cropper) cropper.destroy(); // Destroy old instance if exists
-        cropper = new Cropper(cropImage, {
-            viewMode: 1,
-            background: false,
-        });
+        cropModal.style.display = 'flex';
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropImage, { viewMode: 1, background: false });
     };
     reader.readAsDataURL(file);
 }
 
 cancelCrop.addEventListener('click', () => {
     cropModal.style.display = 'none';
-    fileInput.value = ''; // Reset file input
+    fileInput.value = '';
+    if (cropper) cropper.destroy();
+    cropper = null;
 });
 
 confirmCrop.addEventListener('click', () => {
-    // Get cropped canvas and convert to base64
     const canvas = cropper.getCroppedCanvas();
-    croppedBase64 = canvas.toDataURL('image/jpeg').split(',')[1]; // Strip the data:image prefix for API
-
-    // UI Feedback: Change dropzone text to show image is attached
-    dropZone.innerHTML = "<p>✅ Screenshot attached and cropped! Ready to diagnose.</p>";
+    croppedBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+    dropZone.innerHTML = dropZoneAttached;
     cropModal.style.display = 'none';
 });
 
-// --- 3. API Logic (Talking to our secure Vercel Backend) ---
+// --- 3. Submit ---
 submitBtn.addEventListener('click', async () => {
     const problemDescription = textInput.value.trim();
-
     if (!croppedBase64 && !problemDescription) {
         alert("Please either drop a screenshot or describe your problem.");
         return;
     }
-
-    // Switch UI to Loading
     inputCard.style.display = 'none';
     loadingState.style.display = 'block';
     outputZone.style.display = 'none';
-
     try {
         await callBackendAPI(problemDescription, croppedBase64);
     } catch (error) {
         alert("An error occurred: " + error.message);
-        // Reset UI on error
         loadingState.style.display = 'none';
         inputCard.style.display = 'block';
     }
 });
 
 async function callBackendAPI(text, imageBase64) {
-    // We hit our own secure serverless function now!
     const response = await fetch('/api/diagnose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            text: text,
-            imageBase64: imageBase64
-        })
+        body: JSON.stringify({ text, imageBase64 })
     });
-
     const data = await response.json();
-
-    if (!response.ok) {
-        throw new Error(data.error || `Server Error: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(data.error || `Server Error: ${response.status}`);
     populateOutput(data);
 }
 
-// --- 4. Output UI Logic ---
+// --- 4. Output ---
 function populateOutput(data) {
     loadingState.style.display = 'none';
     outputZone.style.display = 'block';
@@ -139,7 +143,6 @@ function populateOutput(data) {
         expectedResult.innerText = '';
         copyBtn.style.display = 'none';
 
-        // Show follow-up input if not already there
         if (!document.getElementById('followUpBox')) {
             const followUp = document.createElement('div');
             followUp.id = 'followUpBox';
@@ -152,17 +155,11 @@ function populateOutput(data) {
             document.getElementById('followUpSubmit').addEventListener('click', async () => {
                 const followUpText = document.getElementById('followUpInput').value.trim();
                 if (!followUpText) return;
-
-                // Combine original input with follow up answer
                 const combined = (textInput.value.trim() ? textInput.value.trim() + ' ' : '') + followUpText;
-
-                // Remove follow up box
                 followUp.remove();
-
                 outputZone.style.display = 'none';
                 loadingState.style.display = 'block';
                 copyBtn.style.display = 'inline-block';
-
                 try {
                     await callBackendAPI(combined, croppedBase64);
                 } catch (error) {
@@ -172,43 +169,41 @@ function populateOutput(data) {
                 }
             });
         }
-
     } else {
         whatText.innerText = data.what;
         whereText.innerText = data.where;
         fixText.innerText = data.fix;
         expectedResult.innerText = data.expected;
         copyBtn.style.display = 'inline-block';
-
-        // Remove follow up box if it exists
         const followUp = document.getElementById('followUpBox');
         if (followUp) followUp.remove();
     }
 }
 
-// Clipboard Copy
+// --- Copy ---
 copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(fixText.innerText).then(() => {
-        const originalText = copyBtn.innerText;
-        copyBtn.innerText = "Copied! ✅";
-        setTimeout(() => { copyBtn.innerText = originalText; }, 2000);
+        const original = copyBtn.innerText;
+        copyBtn.innerText = "Copied!";
+        setTimeout(() => { copyBtn.innerText = original; }, 2000);
     });
 });
 
-// Reset Flow
+// --- Reset ---
 resetBtn.addEventListener('click', () => {
-    // Clear data
     croppedBase64 = null;
     textInput.value = '';
     fileInput.value = '';
-    dropZone.innerHTML = "<p>Drop your screenshot here or click to upload</p>";
-
-    // Reset UI
+    dropZone.innerHTML = dropZoneDefault;
     outputZone.style.display = 'none';
     loadingState.style.display = 'none';
     inputCard.style.display = 'block';
+    copyBtn.style.display = 'inline-block';
+    const followUp = document.getElementById('followUpBox');
+    if (followUp) followUp.remove();
 });
-// How it works modal
+
+// --- How it works ---
 document.getElementById('howItWorks').addEventListener('click', () => {
     document.getElementById('howModal').style.display = 'flex';
 });
