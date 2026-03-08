@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
         const systemInstruction = `You are an empathetic technical support agent helping a complete beginner. You are in a multi-turn diagnostic conversation. ALWAYS respond in valid JSON format. NEVER use placeholder text like "This step isn't applicable yet".
 
