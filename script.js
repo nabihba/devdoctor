@@ -1,4 +1,4 @@
-// --- DOM Elements ---
+
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const textInput = document.getElementById('textInput');
@@ -17,11 +17,12 @@ const copyBtn = document.getElementById('copyBtn');
 const expectedResult = document.getElementById('expectedResult');
 const resetBtn = document.getElementById('resetBtn');
 
-// --- State ---
+
 let cropper = null;
 let croppedBase64 = null;
+let conversationHistory = [];
 
-// --- Drop Zone HTML Templates ---
+
 const dropZoneDefault = `
     <div class="drop-inner">
         <div class="drop-icon-wrap">
@@ -49,7 +50,7 @@ const dropZoneAttached = `
     </div>
 `;
 
-// --- 1. Drag and Drop ---
+
 dropZone.addEventListener('click', () => fileInput.click());
 
 dropZone.addEventListener('dragover', (e) => {
@@ -71,7 +72,7 @@ fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) handleImageUpload(e.target.files[0]);
 });
 
-// --- 2. Cropper ---
+
 function handleImageUpload(file) {
     if (!file.type.startsWith('image/')) {
         alert("Please upload an image file.");
@@ -103,7 +104,7 @@ confirmCrop.addEventListener('click', () => {
     cropper = null;
 });
 
-// --- 3. Submit ---
+
 submitBtn.addEventListener('click', async () => {
     const problemDescription = textInput.value.trim();
     if (!croppedBase64 && !problemDescription) {
@@ -115,6 +116,7 @@ submitBtn.addEventListener('click', async () => {
     loadingState.style.display = 'block';
     outputZone.style.display = 'none';
     try {
+        conversationHistory = [];
         await callBackendAPI(problemDescription, croppedBase64);
     } catch (error) {
         alert("An error occurred: " + error.message);
@@ -129,14 +131,19 @@ async function callBackendAPI(text, imageBase64) {
     const response = await fetch('/api/diagnose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, imageBase64 })
+        body: JSON.stringify({ text, imageBase64, history: conversationHistory })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || `Server Error: ${response.status}`);
+
+    conversationHistory.push({ role: 'user', text: text || '(screenshot)' });
+    const modelText = data.question || [data.what, data.where, data.fix, data.expected].filter(Boolean).join(' | ');
+    conversationHistory.push({ role: 'model', text: modelText });
+
     populateOutput(data);
 }
 
-// --- 4. Output ---
+
 function populateOutput(data) {
     loadingState.style.display = 'none';
     outputZone.style.display = 'block';
@@ -162,17 +169,17 @@ function populateOutput(data) {
                 const followUpText = document.getElementById('followUpInput').value.trim();
                 if (!followUpText) return;
                 followUpBtn.disabled = true;
-                const combined = (textInput.value.trim() ? textInput.value.trim() + ' ' : '') + followUpText;
                 followUp.remove();
                 outputZone.style.display = 'none';
                 loadingState.style.display = 'block';
                 copyBtn.style.display = 'inline-block';
                 try {
-                    await callBackendAPI(combined, croppedBase64);
+                    await callBackendAPI(followUpText, croppedBase64);
                 } catch (error) {
                     alert("An error occurred: " + error.message);
                     loadingState.style.display = 'none';
                     outputZone.style.display = 'block';
+                    followUpBtn.disabled = false;
                 }
             });
         }
@@ -187,7 +194,7 @@ function populateOutput(data) {
     }
 }
 
-// --- Copy ---
+
 copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(fixText.innerText).then(() => {
         const original = copyBtn.innerText;
@@ -196,11 +203,12 @@ copyBtn.addEventListener('click', () => {
     });
 });
 
-// --- Reset ---
+
 resetBtn.addEventListener('click', () => {
     croppedBase64 = null;
     textInput.value = '';
     fileInput.value = '';
+    conversationHistory = [];
     dropZone.innerHTML = dropZoneDefault;
     outputZone.style.display = 'none';
     loadingState.style.display = 'none';
@@ -210,7 +218,7 @@ resetBtn.addEventListener('click', () => {
     if (followUp) followUp.remove();
 });
 
-// --- How it works ---
+
 document.getElementById('howItWorks').addEventListener('click', () => {
     document.getElementById('howModal').style.display = 'flex';
 });
